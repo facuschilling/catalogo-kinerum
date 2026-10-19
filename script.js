@@ -155,14 +155,28 @@ function poblarCategorias(productos) {
   });
 }
 
+// Función auxiliar para quitar acentos/tildes a un texto
+function quitarAcentos(texto) {
+  if (!texto) return '';
+  return String(texto)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
 // 6. Búsqueda y Filtros
 function filtrarProductos() {
-  const texto = document.getElementById('input-busqueda').value.toLowerCase().trim();
+  const textoInput = document.getElementById('input-busqueda').value;
+  const textoBuscado = quitarAcentos(textoInput);
   const categoria = document.getElementById('select-categoria').value;
 
   const filtrados = todosLosProductos.filter(prod => {
-    const coincideNombre = (prod.nombre || '').toLowerCase().includes(texto);
-    const coincideDesc = (prod.descripcion || '').toLowerCase().includes(texto);
+    const nombreNormalizado = quitarAcentos(prod.nombre);
+    const descNormalizada = quitarAcentos(prod.descripcion);
+
+    const coincideNombre = nombreNormalizado.includes(textoBuscado);
+    const coincideDesc = descNormalizada.includes(textoBuscado);
     const coincideTexto = coincideNombre || coincideDesc;
 
     const coincideCategoria = categoria === '' || (prod.categoria && prod.categoria === categoria);
