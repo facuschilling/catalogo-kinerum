@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Kiñerum by Valeria Gioia</title>
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="#">Inicio</a></li>
+                <li class="dropdown">
+                    <a href="#productos-seccion" class="dropbtn">Productos ▾</a>
+                    <div class="dropdown-content" id="categorias-dropdown">
+                        <a href="#" onclick="filtrarPorCategoria('')">Todas las categorías</a>
+                    </div>
+                </li>
+                <li><a href="#" onclick="filtrarDestacados()">¡Nuevos ingresos / Destacados!</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Slider de Banners -->
+        <section class="slider-container">
+            <div class="slider-slides">
+                <div class="slide active">
+                    <img src="banner1.jpg" alt="Banner 1">
+                </div>
+                <div class="slide">
+                    <img src="banner2.jpg" alt="Banner 2">
+                </div>
+            </div>
+            <button class="prev" onclick="cambiarSlide(-1)">&#10094;</button>
+            <button class="next" onclick="cambiarSlide(1)">&#10095;</button>
+            <div class="slider-dots" id="slider-dots"></div>
+        </section>
+
+        <!-- Sobre Nosotros -->
+        <section class="sobreNosotros">
+            <h1>Kiñerum by Valeria Gioia</h1>
+            <p>Somos una blanquería de la ciudad de Olavarría enfocada en traer la mejor calidad. Nos especializamos en la venta de blanco para el hogar, trabajando con diversas marcas para hacer de tu hogar un lugar especial.</p>
+        </section>
+
+        <!-- Barra de Búsqueda y Filtros -->
+        <section class="search-section">
+            <div class="search-container">
+                <input type="text" id="input-busqueda" placeholder="Buscar por nombre o descripción..." oninput="filtrarProductos()">
+                <select id="select-categoria" onchange="filtrarProductos()">
+                    <option value="">Todas las categorías</option>
+                </select>
+                <button id="btn-limpiar" onclick="limpiarFiltros()">Limpiar</button>
+            </div>
+            <p id="contador-resultados" class="contador-resultados"></p>
+        </section>
+
+        <!-- Productos Destacados -->
+        <section class="productosDestacados" id="seccion-destacados">
+            <h2>Productos destacados</h2>
+            <div class="carrusel-destacados-container">
+                <button class="carrusel-btn prev-btn" onclick="scrollearCarrusel(-1)">&#10094;</button>
+                <div id="catalogo-destacados" class="carrusel-destacados-track"></div>
+                <button class="carrusel-btn next-btn" onclick="scrollearCarrusel(1)">&#10095;</button>
+            </div>
+        </section>
+
+        <!-- Todos los Productos -->
+        <section class="productos" id="productos-seccion">
+            <h3>Todos los productos</h3>
+            <div id="catalogo" class="grid-catalogo">
+                <p class="cargando-text">Cargando productos...</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal / Ventana emergente al hacer clic en un producto -->
+    <div id="product-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
