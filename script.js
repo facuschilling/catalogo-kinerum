@@ -1,4 +1,4 @@
-const API_URL = 'https://sheetdb.io/api/v1/46gzx2zgab6ug?sheet=tabla'; 
+const API_URL = 'https://sheetdb.io/api/v1/46gzx2zgab6ug'; 
 const TELEFONO_WSP = '5492284600624'; 
 
 let todosLosProductos = [];
