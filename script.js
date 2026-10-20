@@ -151,17 +151,17 @@ function poblarCategorias(productos) {
   const dropdown = document.getElementById('categorias-dropdown');
   const selectCat = document.getElementById('select-categoria');
 
-  if (!dropdown || !selectCat) return;
+  if (!dropdown && !selectCat) return;
 
-  dropdown.innerHTML = '';
-  selectCat.innerHTML = '<option value="">Todas las categorías</option>';
+  if (dropdown) dropdown.innerHTML = '';
+  if (selectCat) selectCat.innerHTML = '<option value="">Todas las categorías</option>';
 
   const mapaCategorias = {};
 
   productos.forEach(prod => {
     if (!prod.categoria) return;
 
-    // Separar por coma: "Sábanas, Sábanas 2 ½ plazas"
+    // Separar por comas (Ej: "Sábanas, Sábanas 2 ½ plazas")
     const partes = String(prod.categoria).split(',').map(c => c.trim()).filter(Boolean);
 
     if (partes.length > 0) {
@@ -178,41 +178,56 @@ function poblarCategorias(productos) {
   });
 
   Object.keys(mapaCategorias).sort().forEach(catPrincipal => {
-    // 1. Categoría Principal en Dropdown
-    const itemMenu = document.createElement('a');
-    itemMenu.href = '#productos-seccion';
-    itemMenu.style.fontWeight = 'bold';
-    itemMenu.textContent = catPrincipal;
-    itemMenu.onclick = (e) => {
-      e.preventDefault();
-      filtrarPorCategoria(catPrincipal);
-    };
-    dropdown.appendChild(itemMenu);
+    // 1. Categoría Principal en Dropdown (Navbar)
+    if (dropdown) {
+      const itemMenu = document.createElement('a');
+      itemMenu.href = '#productos-seccion';
+      itemMenu.className = 'cat-principal';
+      itemMenu.style.display = 'block';
+      itemMenu.style.fontWeight = 'bold';
+      itemMenu.style.padding = '8px 15px';
+      itemMenu.style.color = '#400643';
+      itemMenu.textContent = catPrincipal;
+      itemMenu.onclick = (e) => {
+        e.preventDefault();
+        filtrarPorCategoria(catPrincipal);
+      };
+      dropdown.appendChild(itemMenu);
+    }
 
     // 1. Categoría Principal en Select
-    const optPrincipal = document.createElement('option');
-    optPrincipal.value = catPrincipal;
-    optPrincipal.textContent = catPrincipal;
-    optPrincipal.style.fontWeight = 'bold';
-    selectCat.appendChild(optPrincipal);
+    if (selectCat) {
+      const optPrincipal = document.createElement('option');
+      optPrincipal.value = catPrincipal;
+      optPrincipal.textContent = catPrincipal;
+      optPrincipal.style.fontWeight = 'bold';
+      selectCat.appendChild(optPrincipal);
+    }
 
     // 2. Subcategorías (si existen)
     mapaCategorias[catPrincipal].forEach(subCat => {
-      const itemSub = document.createElement('a');
-      itemSub.href = '#productos-seccion';
-      itemSub.style.paddingLeft = '20px';
-      itemSub.style.fontSize = '13px';
-      itemSub.textContent = `└ ${subCat}`;
-      itemSub.onclick = (e) => {
-        e.preventDefault();
-        filtrarPorCategoria(subCat);
-      };
-      dropdown.appendChild(itemSub);
+      if (dropdown) {
+        const itemSub = document.createElement('a');
+        itemSub.href = '#productos-seccion';
+        itemSub.className = 'sub-categoria';
+        itemSub.style.display = 'block';
+        itemSub.style.paddingLeft = '30px';
+        itemSub.style.fontSize = '13px';
+        itemSub.style.color = '#666666';
+        itemSub.textContent = `└ ${subCat}`;
+        itemSub.onclick = (e) => {
+          e.preventDefault();
+          filtrarPorCategoria(subCat);
+        };
+        dropdown.appendChild(itemSub);
+      }
 
-      const optSub = document.createElement('option');
-      optSub.value = subCat;
-      optSub.textContent = `   └ ${subCat}`;
-      selectCat.appendChild(optSub);
+      if (selectCat) {
+        const optSub = document.createElement('option');
+        optSub.value = subCat;
+        optSub.textContent = `   └ ${subCat}`;
+        selectCat.appendChild(optSub);
+      }
     });
   });
 }
