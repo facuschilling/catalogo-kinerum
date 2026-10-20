@@ -1,11 +1,21 @@
-const API_URL = 'https://sheetdb.io/api/v1/46gzx2zgab6ug'; 
+const API_URL = 'https://sheetdb.io/api/v1/46gzx2zgab6ug?sheet=tabla'; 
 const TELEFONO_WSP = '5492284600624'; 
 
 let todosLosProductos = [];
 let slideIndex = 0;
 let timerSlider;
 
-// 1. Procesamiento de URLs de Google Drive
+// --- FUNCIÓN AUXILIAR: NORMALIZAR Y REMOVER TILDES/ACENTOS ---
+function quitarAcentos(texto) {
+  if (!texto) return '';
+  return String(texto)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+// 1. Procesamiento de URLs de Google Drive o Links Externos
 function procesarImagenDrive(texto) {
   if (!texto) return 'https://via.placeholder.com/300x250';
   let limpio = String(texto).trim();
@@ -34,7 +44,7 @@ fetch(API_URL)
       lista = Object.values(productos)[0] || [];
     }
 
-    // AQUÍ APLICAMOS EL ORDEN: Primero los "nuevo", el resto mezclados
+    // Ordenar: primero 'nuevo', resto mezclado
     todosLosProductos = ordenarNuevosPrimeros(Array.isArray(lista) ? lista : []);
 
     poblarCategorias(todosLosProductos);
@@ -55,11 +65,11 @@ function renderizarTodo(productos) {
   const seccionDestacados = document.getElementById('seccion-destacados');
   const contador = document.getElementById('contador-resultados');
 
-  catalogoGral.innerHTML = '';
-  catalogoDestacados.innerHTML = '';
+  if (catalogoGral) catalogoGral.innerHTML = '';
+  if (catalogoDestacados) catalogoDestacados.innerHTML = '';
 
   if (!Array.isArray(productos) || productos.length === 0) {
-    catalogoGral.innerHTML = '<p>No se encontraron productos que coincidan.</p>';
+    if (catalogoGral) catalogoGral.innerHTML = '<p>No se encontraron productos que coincidan.</p>';
     if (seccionDestacados) seccionDestacados.style.display = 'none';
     if (contador) contador.textContent = '0 productos encontrados';
     return;
@@ -67,10 +77,10 @@ function renderizarTodo(productos) {
 
   if (contador) contador.textContent = `${productos.length} producto(s) encontrado(s)`;
 
-  // Filtrar destacados por la columna 'destacado' === 'si'
-  const listaDestacados = productos.filter(p => p.destacado && String(p.destacado).trim().toLowerCase() === 'si');
+  // Filtrar destacados por columna 'destacado' === 'si'
+  const listaDestacados = productos.filter(p => p.destacado && quitarAcentos(p.destacado) === 'si');
 
-  if (listaDestacados.length > 0 && seccionDestacados) {
+  if (listaDestacados.length > 0 && seccionDestacados && catalogoDestacados) {
     seccionDestacados.style.display = 'block';
     listaDestacados.forEach(prod => {
       catalogoDestacados.innerHTML += crearTarjetaHTML(prod);
@@ -80,9 +90,11 @@ function renderizarTodo(productos) {
   }
 
   // Renderizar catálogo general
-  productos.forEach(prod => {
-    catalogoGral.innerHTML += crearTarjetaHTML(prod);
-  });
+  if (catalogoGral) {
+    productos.forEach(prod => {
+      catalogoGral.innerHTML += crearTarjetaHTML(prod);
+    });
+  }
 }
 
 // 4. Generación de tarjeta HTML
@@ -134,52 +146,95 @@ function crearTarjetaHTML(prod) {
   `;
 }
 
-// 5. Lógica del Desplegable de Categorías
+// 5. Categorías y Subcategorías (Soporte para comas)
 function poblarCategorias(productos) {
   const dropdown = document.getElementById('categorias-dropdown');
   const selectCat = document.getElementById('select-categoria');
 
-  const categorias = [...new Set(productos.map(p => p.categoria).filter(Boolean))];
+  if (!dropdown || !selectCat) return;
 
-  categorias.forEach(cat => {
+  dropdown.innerHTML = '';
+  selectCat.innerHTML = '<option value="">Todas las categorías</option>';
+
+  const mapaCategorias = {};
+
+  productos.forEach(prod => {
+    if (!prod.categoria) return;
+
+    // Separar por coma: "Sábanas, Sábanas 2 ½ plazas"
+    const partes = String(prod.categoria).split(',').map(c => c.trim()).filter(Boolean);
+
+    if (partes.length > 0) {
+      const catPrincipal = partes[0];
+      const subCat = partes[1] || null;
+
+      if (!mapaCategorias[catPrincipal]) {
+        mapaCategorias[catPrincipal] = new Set();
+      }
+      if (subCat) {
+        mapaCategorias[catPrincipal].add(subCat);
+      }
+    }
+  });
+
+  Object.keys(mapaCategorias).sort().forEach(catPrincipal => {
+    // 1. Categoría Principal en Dropdown
     const itemMenu = document.createElement('a');
     itemMenu.href = '#productos-seccion';
-    itemMenu.textContent = cat;
-    itemMenu.onclick = () => filtrarPorCategoria(cat);
+    itemMenu.style.fontWeight = 'bold';
+    itemMenu.textContent = catPrincipal;
+    itemMenu.onclick = (e) => {
+      e.preventDefault();
+      filtrarPorCategoria(catPrincipal);
+    };
     dropdown.appendChild(itemMenu);
 
-    const itemSelect = document.createElement('option');
-    itemSelect.value = cat;
-    itemSelect.textContent = cat;
-    selectCat.appendChild(itemSelect);
+    // 1. Categoría Principal en Select
+    const optPrincipal = document.createElement('option');
+    optPrincipal.value = catPrincipal;
+    optPrincipal.textContent = catPrincipal;
+    optPrincipal.style.fontWeight = 'bold';
+    selectCat.appendChild(optPrincipal);
+
+    // 2. Subcategorías (si existen)
+    mapaCategorias[catPrincipal].forEach(subCat => {
+      const itemSub = document.createElement('a');
+      itemSub.href = '#productos-seccion';
+      itemSub.style.paddingLeft = '20px';
+      itemSub.style.fontSize = '13px';
+      itemSub.textContent = `└ ${subCat}`;
+      itemSub.onclick = (e) => {
+        e.preventDefault();
+        filtrarPorCategoria(subCat);
+      };
+      dropdown.appendChild(itemSub);
+
+      const optSub = document.createElement('option');
+      optSub.value = subCat;
+      optSub.textContent = `   └ ${subCat}`;
+      selectCat.appendChild(optSub);
+    });
   });
 }
 
-// Función auxiliar para quitar acentos/tildes a un texto
-function quitarAcentos(texto) {
-  if (!texto) return '';
-  return String(texto)
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-}
-
-// 6. Búsqueda y Filtros
+// 6. Búsqueda y Filtros con Acentos Normalizados
 function filtrarProductos() {
-  const textoInput = document.getElementById('input-busqueda').value;
-  const textoBuscado = quitarAcentos(textoInput);
-  const categoria = document.getElementById('select-categoria').value;
+  const inputEl = document.getElementById('input-busqueda');
+  const selectEl = document.getElementById('select-categoria');
+
+  const textoBuscado = quitarAcentos(inputEl ? inputEl.value : '');
+  const catSeleccionada = quitarAcentos(selectEl ? selectEl.value : '');
 
   const filtrados = todosLosProductos.filter(prod => {
-    const nombreNormalizado = quitarAcentos(prod.nombre);
-    const descNormalizada = quitarAcentos(prod.descripcion);
+    const nombreNorm = quitarAcentos(prod.nombre);
+    const descNorm = quitarAcentos(prod.descripcion);
+    const catNorm = quitarAcentos(prod.categoria);
 
-    const coincideNombre = nombreNormalizado.includes(textoBuscado);
-    const coincideDesc = descNormalizada.includes(textoBuscado);
-    const coincideTexto = coincideNombre || coincideDesc;
+    // El buscador encuentra por nombre o por descripción
+    const coincideTexto = textoBuscado === '' || nombreNorm.includes(textoBuscado) || descNorm.includes(textoBuscado);
 
-    const coincideCategoria = categoria === '' || (prod.categoria && prod.categoria === categoria);
+    // El filtro de categoría busca la coincidencia exacta dentro del string de categoría/subcategoría
+    const coincideCategoria = catSeleccionada === '' || catNorm.includes(catSeleccionada);
 
     return coincideTexto && coincideCategoria;
   });
@@ -188,18 +243,26 @@ function filtrarProductos() {
 }
 
 function filtrarPorCategoria(cat) {
-  document.getElementById('select-categoria').value = cat;
+  const selectCat = document.getElementById('select-categoria');
+  if (selectCat) {
+    selectCat.value = cat;
+  }
   filtrarProductos();
-}
 
-function filtrarDestacados() {
-  const destacados = todosLosProductos.filter(p => p.destacado && String(p.destacado).trim().toLowerCase() === 'si');
-  renderizarTodo(destacados);
+  // Scroll suave hacia la sección de productos al hacer clic en el menú
+  const seccionProd = document.getElementById('productos-seccion');
+  if (seccionProd) {
+    seccionProd.scrollIntoView({ behavior: 'smooth' });
+  }
 }
 
 function limpiarFiltros() {
-  document.getElementById('input-busqueda').value = '';
-  document.getElementById('select-categoria').value = '';
+  const inputBusqueda = document.getElementById('input-busqueda');
+  const selectCategoria = document.getElementById('select-categoria');
+
+  if (inputBusqueda) inputBusqueda.value = '';
+  if (selectCategoria) selectCategoria.value = '';
+
   renderizarTodo(todosLosProductos);
 }
 
@@ -251,30 +314,35 @@ function abrirModalProducto(id, event) {
   }
 
   const modalBody = document.getElementById('modal-body');
-  modalBody.innerHTML = `
-    <div class="modal-product-detail">
-      <div class="product-image">
-        <img id="modal-img-${prod.id}" src="${fotos[0]}" alt="${prod.nombre}">
-      </div>
-      ${galleryHTML}
-      <div class="product-content">
-        <span class="product-category">${prod.categoria || ''}</span>
-        <h2 style="color:#400643; margin: 10px 0;">${prod.nombre}</h2>
-        <p class="product-description" style="display:block; margin-bottom: 20px;">${prod.descripcion || ''}</p>
-        
-        ${opcionesHTML}
+  if (modalBody) {
+    modalBody.innerHTML = `
+      <div class="modal-product-detail">
+        <div class="product-image">
+          <img id="modal-img-${prod.id}" src="${fotos[0]}" alt="${prod.nombre}">
+        </div>
+        ${galleryHTML}
+        <div class="product-content">
+          <span class="product-category">${prod.categoria || ''}</span>
+          <h2 style="color:#400643; margin: 10px 0;">${prod.nombre}</h2>
+          <p class="product-description" style="display:block; margin-bottom: 20px;">${prod.descripcion || ''}</p>
+          
+          ${opcionesHTML}
 
-        <div style="margin-top:20px;">
-          <button class="btn-add-cart" style="padding:12px; font-size:15px;" onclick="enviarWhatsAppModal('${prod.id}', '${prod.nombre.replace(/'/g, "\\'")}')">
-            Consultar por whatsapp
-          </button>
+          <div style="margin-top:20px;">
+            <button class="btn-add-cart" style="padding:12px; font-size:15px;" onclick="enviarWhatsAppModal('${prod.id}', '${prod.nombre.replace(/'/g, "\\'")}')">
+              Consultar por whatsapp
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  `;
+    `;
+  }
 
-  document.getElementById('product-modal').style.display = 'block';
-  document.body.style.overflow = 'hidden';
+  const modal = document.getElementById('product-modal');
+  if (modal) {
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
 }
 
 function configurarEventosModal() {
@@ -327,7 +395,7 @@ function iniciarSlider() {
   const slides = document.querySelectorAll('.slide');
   const dotsContainer = document.getElementById('slider-dots');
 
-  if (slides.length <= 1) return;
+  if (slides.length <= 1 || !dotsContainer) return;
 
   dotsContainer.innerHTML = '';
   slides.forEach((_, i) => {
@@ -337,6 +405,7 @@ function iniciarSlider() {
     dotsContainer.appendChild(dot);
   });
 
+  if (timerSlider) clearInterval(timerSlider);
   timerSlider = setInterval(() => cambiarSlide(1), 5000);
 }
 
@@ -353,6 +422,8 @@ function cambiarSlide(direccion) {
 
 function irASlide(index) {
   const slides = document.querySelectorAll('.slide');
+  if (slides.length === 0) return;
+  
   slides[slideIndex].classList.remove('active');
   slideIndex = index;
   slides[slideIndex].classList.add('active');
@@ -366,7 +437,7 @@ function actualizarDots() {
   });
 }
 
-// 10. Carrusel de Destacados (Flechas laterales)
+// 10. Carrusel de Destacados
 function scrollearCarrusel(direccion) {
   const track = document.getElementById('catalogo-destacados');
   if (!track) return;
@@ -374,12 +445,13 @@ function scrollearCarrusel(direccion) {
   track.scrollBy({ left: desplazar, behavior: 'smooth' });
 }
 
-// 11. Ordenamiento: Primero los "nuevo", el resto mezclados aleatoriamente
+// 11. Ordenar: Primero 'nuevo', el resto mezclados aleatoriamente
 function ordenarNuevosPrimeros(array) {
   let arr = [...array];
-  let nuevos = arr.filter(p => p.badge && String(p.badge).trim().toLowerCase() === 'nuevo');
-  let otros = arr.filter(p => !p.badge || String(p.badge).trim().toLowerCase() !== 'nuevo');
+  let nuevos = arr.filter(p => p.badge && quitarAcentos(p.badge) === 'nuevo');
+  let otros = arr.filter(p => !p.badge || quitarAcentos(p.badge) !== 'nuevo');
 
+  // Mezcla de Fisher-Yates para el grupo de 'otros'
   for (let i = otros.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [otros[i], otros[j]] = [otros[j], otros[i]];
