@@ -97,13 +97,16 @@ function renderizarTodo(productos) {
   }
 }
 
-// 4. Generación de tarjeta HTML
+// 4. Generación de tarjeta HTML (Corregido botón de WhatsApp)
 function crearTarjetaHTML(prod) {
   const id = prod.id || Math.random().toString(36).substr(2, 9);
   const nombre = prod.nombre || 'Producto sin nombre';
   const categoria = prod.categoria || '';
   const descripcion = prod.descripcion || '';
   const badge = prod.badge || '';
+
+  // Escapamos comillas simples y dobles para que no rompan el onclick
+  const nombreEscapado = String(nombre).replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
   const fotosRaw = prod.imagenes ? String(prod.imagenes).split(',') : [];
   const fotos = fotosRaw.length > 0 && fotosRaw[0].trim() !== "" 
@@ -125,7 +128,7 @@ function crearTarjetaHTML(prod) {
   return `
     <article class="product-card" onclick="abrirModalProducto('${id}', event)">
       <div class="product-image">
-        <img id="img-${id}" src="${fotoPrincipal}" alt="${nombre}">
+        <img id="img-${id}" src="${fotoPrincipal}" alt="${nombreEscapado}">
         ${badgeHTML}
       </div>
 
@@ -137,7 +140,7 @@ function crearTarjetaHTML(prod) {
         <p class="product-description">${descripcion}</p>
 
         <div class="product-footer">
-          <button class="btn-add-cart" onclick="enviarWhatsAppSimple('${id}', '${nombre.replace(/'/g, "\\'")}', event)">
+          <button class="btn-add-cart" onclick="enviarWhatsAppSimple('${id}', '${nombreEscapado}', event)">
             Consultar por whatsapp
           </button>
         </div>
