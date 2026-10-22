@@ -44,7 +44,6 @@ fetch(API_URL)
       lista = Object.values(productos)[0] || [];
     }
 
-    // Ordenar: primero 'nuevo', resto mezclado
     todosLosProductos = ordenarNuevosPrimeros(Array.isArray(lista) ? lista : []);
 
     poblarCategorias(todosLosProductos);
@@ -77,7 +76,6 @@ function renderizarTodo(productos) {
 
   if (contador) contador.textContent = `${productos.length} producto(s) encontrado(s)`;
 
-  // Filtrar destacados por columna 'destacado' === 'si'
   const listaDestacados = productos.filter(p => p.destacado && quitarAcentos(p.destacado) === 'si');
 
   if (listaDestacados.length > 0 && seccionDestacados && catalogoDestacados) {
@@ -89,7 +87,6 @@ function renderizarTodo(productos) {
     seccionDestacados.style.display = 'none';
   }
 
-  // Renderizar catálogo general
   if (catalogoGral) {
     productos.forEach(prod => {
       catalogoGral.innerHTML += crearTarjetaHTML(prod);
@@ -97,7 +94,7 @@ function renderizarTodo(productos) {
   }
 }
 
-// 4. Generación de tarjeta HTML (Corregido botón de WhatsApp)
+// 4. Generación de tarjeta HTML
 function crearTarjetaHTML(prod) {
   const id = prod.id || Math.random().toString(36).substr(2, 9);
   const nombre = prod.nombre || 'Producto sin nombre';
@@ -105,7 +102,6 @@ function crearTarjetaHTML(prod) {
   const descripcion = prod.descripcion || '';
   const badge = prod.badge || '';
 
-  // Escapamos comillas simples y dobles para que no rompan el onclick
   const nombreEscapado = String(nombre).replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
   const fotosRaw = prod.imagenes ? String(prod.imagenes).split(',') : [];
@@ -149,7 +145,7 @@ function crearTarjetaHTML(prod) {
   `;
 }
 
-// 5. Categorías y Subcategorías (Soporte para comas)
+// 5. Categorías y Subcategorías
 function poblarCategorias(productos) {
   const dropdown = document.getElementById('categorias-dropdown');
   const selectCat = document.getElementById('select-categoria');
@@ -164,7 +160,6 @@ function poblarCategorias(productos) {
   productos.forEach(prod => {
     if (!prod.categoria) return;
 
-    // Separar por comas (Ej: "Sábanas, Sábanas 2 ½ plazas")
     const partes = String(prod.categoria).split(',').map(c => c.trim()).filter(Boolean);
 
     if (partes.length > 0) {
@@ -181,7 +176,6 @@ function poblarCategorias(productos) {
   });
 
   Object.keys(mapaCategorias).sort().forEach(catPrincipal => {
-    // 1. Categoría Principal en Dropdown (Navbar)
     if (dropdown) {
       const itemMenu = document.createElement('a');
       itemMenu.href = '#productos-seccion';
@@ -198,7 +192,6 @@ function poblarCategorias(productos) {
       dropdown.appendChild(itemMenu);
     }
 
-    // 1. Categoría Principal en Select
     if (selectCat) {
       const optPrincipal = document.createElement('option');
       optPrincipal.value = catPrincipal;
@@ -207,7 +200,6 @@ function poblarCategorias(productos) {
       selectCat.appendChild(optPrincipal);
     }
 
-    // 2. Subcategorías (si existen)
     mapaCategorias[catPrincipal].forEach(subCat => {
       if (dropdown) {
         const itemSub = document.createElement('a');
@@ -235,7 +227,7 @@ function poblarCategorias(productos) {
   });
 }
 
-// 6. Búsqueda y Filtros con Acentos Normalizados
+// 6. Búsqueda y Filtros
 function filtrarProductos() {
   const inputEl = document.getElementById('input-busqueda');
   const selectEl = document.getElementById('select-categoria');
@@ -248,10 +240,7 @@ function filtrarProductos() {
     const descNorm = quitarAcentos(prod.descripcion);
     const catNorm = quitarAcentos(prod.categoria);
 
-    // El buscador encuentra por nombre o por descripción
     const coincideTexto = textoBuscado === '' || nombreNorm.includes(textoBuscado) || descNorm.includes(textoBuscado);
-
-    // El filtro de categoría busca la coincidencia exacta dentro del string de categoría/subcategoría
     const coincideCategoria = catSeleccionada === '' || catNorm.includes(catSeleccionada);
 
     return coincideTexto && coincideCategoria;
@@ -267,7 +256,6 @@ function filtrarPorCategoria(cat) {
   }
   filtrarProductos();
 
-  // Scroll suave hacia la sección de productos al hacer clic en el menú
   const seccionProd = document.getElementById('productos-seccion');
   if (seccionProd) {
     seccionProd.scrollIntoView({ behavior: 'smooth' });
@@ -284,7 +272,7 @@ function limpiarFiltros() {
   renderizarTodo(todosLosProductos);
 }
 
-// 7. Modal Expandido con cambio de imagen dinámico por color
+// 7. Modal Expandido y Navegación de Colores/Diseños
 function abrirModalProducto(id, event) {
   if (event && (event.target.tagName === 'BUTTON' || event.target.tagName === 'SELECT' || event.target.tagName === 'A' || event.target.classList.contains('thumb'))) {
     return;
@@ -363,7 +351,6 @@ function abrirModalProducto(id, event) {
   }
 }
 
-// Función auxiliar para cambiar la foto al mover el selector de color/diseño
 function cambiarImagenSegunColor(id, selectElement) {
   const selectedOption = selectElement.options[selectElement.selectedIndex];
   const index = selectedOption.getAttribute('data-index');
@@ -372,7 +359,6 @@ function cambiarImagenSegunColor(id, selectElement) {
   }
 }
 
-// Función para actualizar la imagen principal y resaltar la miniatura seleccionada
 function seleccionarFotoModal(id, index) {
   const prod = todosLosProductos.find(p => String(p.id) === String(id));
   if (!prod) return;
@@ -384,17 +370,38 @@ function seleccionarFotoModal(id, index) {
     const imgPrincipal = document.getElementById(`modal-img-${id}`);
     if (imgPrincipal) imgPrincipal.src = fotos[index];
 
-    // Actualizar selector de color si coincide el índice
     const selectColor = document.getElementById(`modal-color-${id}`);
     if (selectColor && selectColor.options[index]) {
       selectColor.selectedIndex = index;
     }
 
-    // Actualizar bordes de las miniaturas
     const thumbs = document.querySelectorAll(`[id^="thumb-${id}-"]`);
     thumbs.forEach((t, i) => {
       t.style.borderColor = i === index ? '#400643' : 'transparent';
     });
+  }
+}
+
+function configurarEventosModal() {
+  const modal = document.getElementById('product-modal');
+  const closeBtn = document.querySelector('.close-modal');
+
+  if (closeBtn) closeBtn.onclick = cerrarModal;
+
+  window.onclick = function(event) {
+    if (event.target === modal) cerrarModal();
+  };
+
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') cerrarModal();
+  });
+}
+
+function cerrarModal() {
+  const modal = document.getElementById('product-modal');
+  if (modal) {
+    modal.style.display = 'none';
+    document.body.style.overflow = 'auto';
   }
 }
 
@@ -413,7 +420,7 @@ function enviarWhatsAppModal(id, nombreProducto) {
   const medida = selectMedida ? selectMedida.value : null;
 
   let mensaje = `Hola! Quisiera consultar por el producto: "*${nombreProducto}*"`;
-  if (color) mensaje += `\n- Color: ${color}`;
+  if (color) mensaje += `\n- Color/Diseño: ${color}`;
   if (medida) mensaje += `\n- Medida: ${medida}`;
 
   const url = `https://wa.me/${TELEFONO_WSP}?text=${encodeURIComponent(mensaje)}`;
@@ -475,13 +482,12 @@ function scrollearCarrusel(direccion) {
   track.scrollBy({ left: desplazar, behavior: 'smooth' });
 }
 
-// 11. Ordenar: Primero 'nuevo', el resto mezclados aleatoriamente
+// 11. Ordenamiento
 function ordenarNuevosPrimeros(array) {
   let arr = [...array];
   let nuevos = arr.filter(p => p.badge && quitarAcentos(p.badge) === 'nuevo');
   let otros = arr.filter(p => !p.badge || quitarAcentos(p.badge) !== 'nuevo');
 
-  // Mezcla de Fisher-Yates para el grupo de 'otros'
   for (let i = otros.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [otros[i], otros[j]] = [otros[j], otros[i]];
