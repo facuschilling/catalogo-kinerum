@@ -284,7 +284,7 @@ function limpiarFiltros() {
   renderizarTodo(todosLosProductos);
 }
 
-// 7. Modal Expandido
+// 7. Modal Expandido con cambio de imagen dinámico por color
 function abrirModalProducto(id, event) {
   if (event && (event.target.tagName === 'BUTTON' || event.target.tagName === 'SELECT' || event.target.tagName === 'A' || event.target.classList.contains('thumb'))) {
     return;
@@ -305,9 +305,9 @@ function abrirModalProducto(id, event) {
   if (listaColores.length > 0) {
     opcionesHTML += `
       <div class="product-option">
-        <label><b>Color:</b></label>
-        <select id="modal-color-${prod.id}">
-          ${listaColores.map(c => `<option value="${c}">${c}</option>`).join('')}
+        <label><b>Color / Diseño:</b></label>
+        <select id="modal-color-${prod.id}" onchange="cambiarImagenSegunColor('${prod.id}', this)">
+          ${listaColores.map((c, index) => `<option value="\${c}" data-index="${index}">${c}</option>`).join('')}
         </select>
       </div>`;
   }
@@ -324,9 +324,9 @@ function abrirModalProducto(id, event) {
 
   let galleryHTML = '';
   if (fotos.length > 1) {
-    galleryHTML = `<div class="product-thumbs" style="margin-top:10px;">`;
-    fotos.forEach(fotoUrl => {
-      galleryHTML += `<img src="${fotoUrl}" onclick="document.getElementById('modal-img-${prod.id}').src='${fotoUrl}'" class="thumb" style="width:50px; height:50px;">`;
+    galleryHTML = `<div class="product-thumbs" style="margin-top:10px; display:flex; gap:5px;">`;
+    fotos.forEach((fotoUrl, index) => {
+      galleryHTML += `<img src="${fotoUrl}" id="thumb-${prod.id}-${index}" onclick="seleccionarFotoModal('${prod.id}', ${index})" class="thumb" style="width:50px; height:50px; object-fit:cover; cursor:pointer; border-radius:4px; border:2px solid transparent;">`;
     });
     galleryHTML += `</div>`;
   }
@@ -336,18 +336,18 @@ function abrirModalProducto(id, event) {
     modalBody.innerHTML = `
       <div class="modal-product-detail">
         <div class="product-image">
-          <img id="modal-img-${prod.id}" src="${fotos[0]}" alt="${prod.nombre}">
+          <img id="modal-img-${prod.id}" src="${fotos[0]}" alt="${prod.nombre}" style="width:100%; max-height:350px; object-fit:contain;">
         </div>
         ${galleryHTML}
-        <div class="product-content">
+        <div class="product-content" style="margin-top:15px;">
           <span class="product-category">${prod.categoria || ''}</span>
           <h2 style="color:#400643; margin: 10px 0;">${prod.nombre}</h2>
-          <p class="product-description" style="display:block; margin-bottom: 20px;">${prod.descripcion || ''}</p>
+          <p class="product-description" style="display:block; margin-bottom: 20px; white-space: pre-line;">${prod.descripcion || ''}</p>
           
           ${opcionesHTML}
 
           <div style="margin-top:20px;">
-            <button class="btn-add-cart" style="padding:12px; font-size:15px;" onclick="enviarWhatsAppModal('${prod.id}', '${prod.nombre.replace(/'/g, "\\'")}')">
+            <button class="btn-add-cart" style="padding:12px; font-size:15px; width:100%; cursor:pointer;" onclick="enviarWhatsAppModal('${prod.id}', '${prod.nombre.replace(/'/g, "\\'")}')">
               Consultar por whatsapp
             </button>
           </div>
@@ -363,26 +363,38 @@ function abrirModalProducto(id, event) {
   }
 }
 
-function configurarEventosModal() {
-  const modal = document.getElementById('product-modal');
-  const closeBtn = document.querySelector('.close-modal');
-
-  if (closeBtn) closeBtn.onclick = cerrarModal;
-
-  window.onclick = function(event) {
-    if (event.target === modal) cerrarModal();
-  };
-
-  document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') cerrarModal();
-  });
+// Función auxiliar para cambiar la foto al mover el selector de color/diseño
+function cambiarImagenSegunColor(id, selectElement) {
+  const selectedOption = selectElement.options[selectElement.selectedIndex];
+  const index = selectedOption.getAttribute('data-index');
+  if (index !== null) {
+    seleccionarFotoModal(id, parseInt(index));
+  }
 }
 
-function cerrarModal() {
-  const modal = document.getElementById('product-modal');
-  if (modal) {
-    modal.style.display = 'none';
-    document.body.style.overflow = 'auto';
+// Función para actualizar la imagen principal y resaltar la miniatura seleccionada
+function seleccionarFotoModal(id, index) {
+  const prod = todosLosProductos.find(p => String(p.id) === String(id));
+  if (!prod) return;
+
+  const fotosRaw = prod.imagenes ? String(prod.imagenes).split(',') : [];
+  const fotos = fotosRaw.map(url => procesarImagenDrive(url));
+
+  if (fotos[index]) {
+    const imgPrincipal = document.getElementById(`modal-img-${id}`);
+    if (imgPrincipal) imgPrincipal.src = fotos[index];
+
+    // Actualizar selector de color si coincide el índice
+    const selectColor = document.getElementById(`modal-color-${id}`);
+    if (selectColor && selectColor.options[index]) {
+      selectColor.selectedIndex = index;
+    }
+
+    // Actualizar bordes de las miniaturas
+    const thumbs = document.querySelectorAll(`[id^="thumb-${id}-"]`);
+    thumbs.forEach((t, i) => {
+      t.style.borderColor = i === index ? '#400643' : 'transparent';
+    });
   }
 }
 
